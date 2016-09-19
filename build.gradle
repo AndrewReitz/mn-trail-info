@@ -1,0 +1,43 @@
+buildscript {
+  repositories {
+    jcenter()
+  }
+  dependencies {
+    classpath 'io.ratpack:ratpack-gradle:1.4.2'
+    classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+    classpath 'com.github.ben-manes:gradle-versions-plugin:0.13.0'
+  }
+}
+
+apply plugin: 'io.ratpack.ratpack-groovy'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.github.ben-manes.versions'
+apply plugin: 'idea'
+
+repositories {
+  jcenter()
+}
+
+dependencies {
+  compile ratpack.dependency('retrofit2')
+
+  runtime 'org.slf4j:slf4j-simple:1.7.21'
+
+  compile 'org.jsoup:jsoup:1.9.2'
+  compile 'com.github.ben-manes.caffeine:caffeine:2.3.1'
+
+  testCompile 'org.spockframework:spock-core:1.1-groovy-2.4-rc-1'
+  testCompile 'cglib:cglib:3.2.4'
+  testCompile 'org.objenesis:objenesis:2.4'
+}
+
+task release(type: Exec) {
+  description = 'Publish to Openshift'
+  group = 'Publishing'
+  dependsOn test
+
+  commandLine 'bash', '-c',
+"""
+  git push openshift master
+"""
+}
