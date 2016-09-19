@@ -48,7 +48,7 @@ class TrailProviderSpec extends Specification {
           td('Nothing to see here') // not used
           td(trailInfo.description)
           td('Nothing to see here') // not used
-          td(trailInfo.lastUpdated.format(parser.formatter))
+          td(LocalDateTime.parse(trailInfo.lastUpdated).format(parser.formatter))
         }
       }
     }

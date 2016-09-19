@@ -11,5 +11,5 @@ class TrailInfo {
     String name
     String status
     String description
-    LocalDateTime lastUpdated
+    String lastUpdated
 }
