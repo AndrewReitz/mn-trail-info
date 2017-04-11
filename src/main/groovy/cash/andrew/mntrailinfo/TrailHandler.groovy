@@ -28,28 +28,26 @@ class TrailHandler implements Handler {
   }
 
   @Override void handle(Context context) {
-    def request = context.request
-    def response = context.response
-    def render = context.&render
+    context.with {
+      def cachedData = cache.getIfPresent(CACHE_KEY)
 
-    def cachedData = cache.getIfPresent(CACHE_KEY)
+      if (cachedData) {
+        def etag = request.headers.get(IF_NONE_MATCH)
+        if (toHexString(cachedData.hashCode()) == etag) {
+          response.status(304).send()
+          return
+        }
 
-    if (cachedData) {
-      def etag = request.headers.get(IF_NONE_MATCH)
-      if (toHexString(cachedData.hashCode()) == etag) {
-        response.status(304).send()
+        addCacheHeaders(response.headers, cachedData as List<TrailRegion>)
+        render json(cachedData)
         return
       }
 
-      addCacheHeaders(response.headers, cachedData as List<TrailRegion>)
-      render json(cachedData)
-      return
-    }
-
-    trailProvider.provideTrails().then { List<TrailRegion> trails ->
-      addCacheHeaders(response.headers, trails)
-      cache.put(CACHE_KEY, trails)
-      render json(trails)
+      trailProvider.provideTrails().then { List<TrailRegion> trails ->
+        addCacheHeaders(response.headers, trails)
+        cache.put(CACHE_KEY, trails)
+        render json(trails)
+      }
     }
   }
 
