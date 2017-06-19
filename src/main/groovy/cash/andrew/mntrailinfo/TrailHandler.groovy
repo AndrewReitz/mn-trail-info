@@ -4,8 +4,8 @@ import cash.andrew.mntrailinfo.model.TrailRegion
 import com.github.benmanes.caffeine.cache.Cache
 import com.google.inject.Inject
 import com.google.inject.Singleton
-import ratpack.handling.Context
-import ratpack.handling.Handler
+import ratpack.groovy.handling.GroovyContext
+import ratpack.groovy.handling.GroovyHandler
 import ratpack.http.MutableHeaders
 
 import java.util.concurrent.TimeUnit
@@ -16,7 +16,7 @@ import static java.lang.Integer.toHexString
 import static ratpack.jackson.Jackson.json
 
 @Singleton
-class TrailHandler implements Handler {
+class TrailHandler extends GroovyHandler {
   private static final String CACHE_KEY = 'trailInfo'
 
   private final Cache cache
@@ -27,7 +27,7 @@ class TrailHandler implements Handler {
     this.trailProvider = checkNotNull(trailProvider, 'trailProvider == null')
   }
 
-  @Override void handle(Context context) {
+  @Override void handle(GroovyContext context) {
     context.with {
       def cachedData = cache.getIfPresent(CACHE_KEY)
 
