@@ -2,8 +2,6 @@ package cash.andrew.mntrailinfo.model
 
 import groovy.transform.Immutable
 import groovy.transform.ToString
-import okhttp3.HttpUrl
-import ratpack.api.Nullable
 
 import java.time.LocalDateTime
 
@@ -12,9 +10,8 @@ import java.time.LocalDateTime
 class TrailInfo {
     String name
     String status
+    /** Short description about 100 characters. Not changing the name to keep api versioning simpler */
     String description
+    String fullDescription
     String lastUpdated
-
-    @Nullable HttpUrl facebookUrl
-    HttpUrl detailsUrl
 }
