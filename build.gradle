@@ -1,5 +1,5 @@
 plugins {
-  id 'io.ratpack.ratpack-groovy' version '1.4.6'
+  id 'io.ratpack.ratpack-groovy' version '1.5.0'
   id 'com.github.johnrengelman.plugin-shadow' version '2.0.0'
   id 'com.github.ben-manes.versions' version '0.15.0'
 }
@@ -14,7 +14,6 @@ repositories {
 }
 
 dependencies {
-  compile ratpack.dependency('retrofit2')
   compile ratpack.dependency('rx')
 
   runtime 'org.slf4j:slf4j-simple:1.7.21'
@@ -25,16 +24,4 @@ dependencies {
   testCompile 'org.spockframework:spock-core:1.1-groovy-2.4'
   testCompile 'net.bytebuddy:byte-buddy:1.7.1'
   testCompile 'org.objenesis:objenesis:2.4'
-}
-
-task release(type: Exec) {
-  description = 'Publish to Openshift'
-  group = 'Publishing'
-  dependsOn test
-
-  commandLine 'bash', '-c',
-"""
-  git push origin master
-  git push openshift master
-"""
 }
