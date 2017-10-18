@@ -1,9 +1,9 @@
 import cash.andrew.mntrailinfo.TrailHandler
+import cash.andrew.mntrailinfo.TrailProvider
 import cash.andrew.mntrailinfo.TrailWebsiteDateParser
 import cash.andrew.mntrailinfo.TrailWebsiteProvider
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
-import ratpack.retrofit.RatpackRetrofit
 import ratpack.rx.RxRatpack
 import ratpack.service.Service
 import ratpack.service.StartEvent
@@ -20,19 +20,28 @@ ratpack {
   bindings {
     bind(TrailHandler)
     bind(TrailWebsiteDateParser)
-    bindInstance(TrailWebsiteProvider, RatpackRetrofit.client('http://www.morcmtb.org')
-            .build(TrailWebsiteProvider))
+    bind(TrailWebsiteProvider)
+    bind(TrailProvider)
     bindInstance(Cache, Caffeine.newBuilder()
             .maximumSize(1)
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build())
     bindInstance(new Service() {
       @Override void onStart(StartEvent event) throws Exception {
-        RxRatpack.initialize()
+        def cache = event.registry.get(Cache)
+        def trailProvider  = Observable.just(event.registry.get(TrailProvider)).cache()
 
-        Observable.interval(5, TimeUnit.SECONDS)
-                .subscribeOn(RxRatpack.scheduler())
-                .subscribe { }
+
+        def interval = Observable.interval(5, TimeUnit.MINUTES)
+
+        Observable.just(-1L) // start event
+                .mergeWith(interval)
+                .observeOn(RxRatpack.scheduler())
+                .flatMap { trailProvider }
+                .flatMap { it.provideTrails().observe() }
+                .subscribe {
+                  cache.put('trailInfo', it)
+                }
       }
     })
   }

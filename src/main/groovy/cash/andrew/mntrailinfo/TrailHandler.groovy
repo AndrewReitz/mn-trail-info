@@ -17,7 +17,7 @@ import static ratpack.jackson.Jackson.json
 
 @Singleton
 class TrailHandler extends GroovyHandler {
-  private static final String CACHE_KEY = 'trailInfo'
+  static final String CACHE_KEY = 'trailInfo'
 
   private final Cache cache
   private final TrailProvider trailProvider
