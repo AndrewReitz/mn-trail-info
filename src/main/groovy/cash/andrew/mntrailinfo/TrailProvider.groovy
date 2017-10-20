@@ -10,7 +10,6 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 import ratpack.exec.Promise
-import rx.observables.GroupedObservable
 
 import static com.google.common.base.Preconditions.checkNotNull
 
@@ -18,62 +17,86 @@ import static com.google.common.base.Preconditions.checkNotNull
 @Singleton
 class TrailProvider {
 
-  private final TrailWebsiteProvider websiteProvider
-  private final TrailWebsiteDateParser parser
+	private final TrailWebsiteProvider websiteProvider
+	private final TrailWebsiteDateParser parser
 
-  @Inject TrailProvider(TrailWebsiteProvider websiteProvider, TrailWebsiteDateParser parser) {
-    this.websiteProvider = checkNotNull(websiteProvider, 'websiteProvider == null')
-    this.parser = checkNotNull(parser, 'parser == null')
-  }
+	@Inject TrailProvider(TrailWebsiteProvider websiteProvider, TrailWebsiteDateParser parser) {
+		this.websiteProvider = checkNotNull(websiteProvider, 'websiteProvider == null')
+		this.parser = checkNotNull(parser, 'parser == null')
+	}
 
-  Promise<List<TrailRegion>> provideTrails() {
-    return websiteProvider.website.observe().map { String trailConditionsHtml ->
-      return Jsoup.parse(trailConditionsHtml)
-    }.map { Document doc ->
-      def dataTable = doc.getElementsByClass('forumbits')
+	Promise<List<TrailRegion>> provideTrails() {
+		websiteProvider.website.map { String websiteHtml ->
+			def trails = []
+			def doc = Jsoup.parse(websiteHtml)
+			def dataTable = doc.getElementsByClass('forumbits')
 
-      def returnValue = []
-      doc.getElementsByClass('conditionhead').eachWithIndex { Element tableRow, int i ->
-        def trailRegionName = tableRow.child(0).child(1).text()
-        dataTable[i].getElementsByTag('tr')[1..-1].each { Element tr ->
-          returnValue << [td: tr.children(), trailRegion: trailRegionName]
-        }
-      }
-      return returnValue
-    }.flatMapIterable { data -> data }
-    .flatMap { Map data ->
-      Elements td = data.td
-      def trailConditionThread = td[0].child(0).attr('href').split('=')[1]
-      return websiteProvider.trailDetails(trailConditionThread)
-              .observe()
-              .map { String detailsHtml ->
-                return Jsoup.parse(detailsHtml)
-              }.map { Document detailsDoc ->
-                return detailsDoc.getElementsByClass('content')[0].text().split('Details:')[1]
-              }.map { String fullDescription ->
-                def name = td[0].text()
-                def status = td[1].text()
-                def description = td[3].text()
-                def lastUpdated = td[5].text()
+			doc.getElementsByClass('conditionhead').eachWithIndex { Element tableRow, int i ->
+				def trailInfoList = []
+				dataTable[i].getElementsByTag('tr')[1..-1].each { Element tr ->
+					def td = tr.children()
+					def name = td[0].text()
+					def status = td[1].text()
+					def description = td[3].text()
+					def lastUpdated = td[5].text()
 
-                def trailInfo = new TrailInfo(
-                        name: name,
-                        status: status,
-                        description: description,
-                        fullDescription: fullDescription,
-                        lastUpdated: parser.parseText(lastUpdated)
-                )
+					def trailInfo = new TrailInfo(
+							name: name,
+							status: status,
+							description: description,
+							lastUpdated: parser.parseText(lastUpdated)
+							)
+					trailInfoList << trailInfo
+				}
 
-                return [trailInfo: trailInfo, trailRegion: data.trailRegionName] as Map
-              }
-    }.groupBy { Map data -> data.trailRegionName }
-    .flatMap { GroupedObservable groupedObservable ->
-      return groupedObservable.map { Map item ->
-        item.trailInfo
-      }.toList()
-      .map { List<TrailInfo> trailInfos ->
-        return new TrailRegion(name: groupedObservable.key, trails: trailInfos)
-      }
-    }.promise()
-  }
+				def title = tableRow.child(0).child(1).text()
+				def trailRegion = new TrailRegion(name: title, trails: trailInfoList)
+
+				trails << trailRegion
+			}
+
+			return trails
+		}
+	}
+
+	Promise<List<TrailInfo>> provideTrailsV2() {
+		return websiteProvider.website.observe().map { String trailConditionsHtml ->
+			return Jsoup.parse(trailConditionsHtml)
+		}.map { Document doc ->
+			def dataTable = doc.getElementsByClass('forumbits')
+
+			def returnValue = []
+			doc.getElementsByClass('conditionhead').eachWithIndex { Element tableRow, int i ->
+				dataTable[i].getElementsByTag('tr')[1..-1].each { Element tr ->
+					returnValue << tr.children()
+				}
+			}
+			return returnValue
+		}.flatMapIterable { data -> data }
+		.flatMap { Elements td ->
+			def trailConditionThread = td[0].child(0).attr('href').split('=')[1]
+			return websiteProvider.trailDetails(trailConditionThread)
+					.observe()
+					.map { String detailsHtml ->
+						return Jsoup.parse(detailsHtml)
+					}.map { Document detailsDoc ->
+						return detailsDoc.getElementsByClass('content')[0].text().split('Details:')[1]
+					}.map { String fullDescription ->
+						def name = td[0].text().trim()
+						def status = td[1].text().trim()
+						def description = td[3].text().trim()
+						def lastUpdated = td[5].text().trim()
+
+						def trailInfo = new TrailInfo(
+								name: name,
+								status: status,
+								description: description,
+								fullDescription: fullDescription.trim(),
+								lastUpdated: parser.parseText(lastUpdated)
+								)
+
+						return trailInfo
+					}
+		}.promise()
+	}
 }

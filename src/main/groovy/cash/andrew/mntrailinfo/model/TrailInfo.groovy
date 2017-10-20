@@ -1,5 +1,6 @@
 package cash.andrew.mntrailinfo.model
 
+import groovy.transform.CompileStatic
 import groovy.transform.Immutable
 import groovy.transform.ToString
 
@@ -7,11 +8,12 @@ import java.time.LocalDateTime
 
 @Immutable(knownImmutableClasses = [LocalDateTime])
 @ToString(includeNames = true)
+@CompileStatic
 class TrailInfo {
-    String name
-    String status
-    /** Short description about 100 characters. Not changing the name to keep api versioning simpler */
-    String description
-    String fullDescription
-    String lastUpdated
+	String name
+	String status
+	/** Short description about 100 characters. Not changing the name to keep api versioning simpler */
+	String description
+	String fullDescription
+	String lastUpdated
 }
