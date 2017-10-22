@@ -32,7 +32,7 @@ class TrailHandler extends GroovyHandler {
 
 	@Override
 	void handle(GroovyContext context) {
-		def apiVersion = context.header('api-version').orElse('')
+		def apiVersion = context.header('Api-Version').orElse('')
 
 		// fall through for v1
 		if (apiVersion.isInteger() && apiVersion.toInteger() >= 2) {
