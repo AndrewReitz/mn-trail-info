@@ -3,4 +3,4 @@
 Takes data from http://www.morcmtb.org/forums/trailconditions.php and
 maps it to json for an easy to consume rest service.
 
-See http://trailinfo-andrewreitz.rhcloud.com/
+App https://mn-trail-info-service.herokuapp.com/
