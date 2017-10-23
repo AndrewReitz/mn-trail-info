@@ -1,5 +1,7 @@
 = Trail Info Service
 
+link:https://semaphoreci.com/andrewreitz/mn-trail-info-2[image:https://semaphoreci.com/api/v1/andrewreitz/mn-trail-info-2/branches/master/badge.svg[Build Status]]
+
 Takes data from http://www.morcmtb.org/forums/trailconditions.php and
 maps it to json for an easy to consume rest service.
 
