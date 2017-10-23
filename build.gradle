@@ -1,44 +1,40 @@
-buildscript {
-  repositories {
-    jcenter()
-  }
-  dependencies {
-    classpath 'io.ratpack:ratpack-gradle:1.4.2'
-    classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
-    classpath 'com.github.ben-manes:gradle-versions-plugin:0.13.0'
-  }
+plugins {
+	id 'io.ratpack.ratpack-groovy' version '1.5.0'
+	id 'com.github.johnrengelman.plugin-shadow' version '2.0.0'
+	id 'com.github.ben-manes.versions' version '0.15.0'
+	id "com.diffplug.gradle.spotless" version '3.6.0'
 }
 
-apply plugin: 'io.ratpack.ratpack-groovy'
-apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'com.github.ben-manes.versions'
 apply plugin: 'idea'
 
-repositories {
-  jcenter()
-}
+repositories { jcenter() }
 
 dependencies {
-  compile ratpack.dependency('retrofit2')
+	compile ratpack.dependency('rx')
 
-  runtime 'org.slf4j:slf4j-simple:1.7.21'
+	runtime 'org.slf4j:slf4j-simple:1.7.21'
 
-  compile 'org.jsoup:jsoup:1.9.2'
-  compile 'com.github.ben-manes.caffeine:caffeine:2.3.1'
+	compile 'org.jsoup:jsoup:1.10.3'
+	compile 'com.github.ben-manes.caffeine:caffeine:2.5.2'
 
-  testCompile 'org.spockframework:spock-core:1.1-groovy-2.4-rc-1'
-  testCompile 'cglib:cglib:3.2.4'
-  testCompile 'org.objenesis:objenesis:2.4'
+	testCompile ratpack.dependency('test')
+	testCompile 'org.spockframework:spock-core:1.1-groovy-2.4'
+	testCompile 'net.bytebuddy:byte-buddy:1.7.1'
+	testCompile 'org.objenesis:objenesis:2.4'
 }
 
-task release(type: Exec) {
-  description = 'Publish to Openshift'
-  group = 'Publishing'
-  dependsOn test
+tasks.withType(Test) { testLogging { exceptionFormat 'full' } }
 
-  commandLine 'bash', '-c',
-"""
-  git push origin master
-  git push openshift master
-"""
+spotless {
+	java { googleJavaFormat() }
+	groovy {
+		excludeJava()
+		paddedCell()
+		greclipse()
+	}
+	groovyGradle {
+		target '**/*.gradle'
+		paddedCell()
+		greclipse()
+	}
 }
