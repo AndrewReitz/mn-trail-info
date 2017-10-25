@@ -6,4 +6,4 @@ Takes data from http://www.morcmtb.org/forums/trailconditions.php and
 maps it to json for an easy to consume rest service.
 
 API available at https://mn-trail-info-service.herokuapp.com/
-Swagger docs for API https://app.swaggerhub.com/apis/AndrewCash/morc-trail_info/1
+Swagger docs for API https://app.swaggerhub.com/apis/AndrewCash/morc-trail_info/2

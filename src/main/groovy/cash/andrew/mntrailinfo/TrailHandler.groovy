@@ -2,7 +2,6 @@ package cash.andrew.mntrailinfo
 
 import cash.andrew.mntrailinfo.model.TrailInfo
 import cash.andrew.mntrailinfo.model.TrailRegion
-import com.github.benmanes.caffeine.cache.Cache
 import com.google.inject.Inject
 import com.google.inject.Singleton
 import ratpack.groovy.handling.GroovyContext
@@ -18,14 +17,11 @@ import static ratpack.jackson.Jackson.json
 
 @Singleton
 class TrailHandler extends GroovyHandler {
-	private static final String CACHE_KEY = 'trailInfo'
-	private static final String CACHE_KEY_V2 = 'trailInfoV2'
-
-	private final Cache cache
+	private final TrailCache cache
 	private final TrailProvider trailProvider
 
 	@Inject
-	TrailHandler(Cache cache, TrailProvider trailProvider) {
+	TrailHandler(TrailCache cache, TrailProvider trailProvider) {
 		this.cache = checkNotNull(cache, 'cache == null')
 		this.trailProvider = checkNotNull(trailProvider, 'trailProvider == null')
 	}
@@ -45,7 +41,7 @@ class TrailHandler extends GroovyHandler {
 
 	private void handleV2(GroovyContext context) {
 		context.with {
-			def cachedData = cache.getIfPresent(CACHE_KEY_V2)
+			def cachedData = cache.v2Data
 
 			if (cachedData) {
 				def etag = request.headers.get(IF_NONE_MATCH)
@@ -61,7 +57,7 @@ class TrailHandler extends GroovyHandler {
 
 			trailProvider.provideTrailsV2().then { List<TrailInfo> trails ->
 				addCacheHeaders(response.headers, trails)
-				cache.put(CACHE_KEY_V2, trails)
+				cache.cacheV2Data(trails)
 				render json(trails)
 			}
 		}
@@ -69,7 +65,7 @@ class TrailHandler extends GroovyHandler {
 
 	private void handleV1(GroovyContext context) {
 		context.with {
-			def cachedData = cache.getIfPresent(CACHE_KEY)
+			def cachedData = cache.v1Data
 
 			if (cachedData) {
 				def etag = request.headers.get(IF_NONE_MATCH)
@@ -85,7 +81,7 @@ class TrailHandler extends GroovyHandler {
 
 			trailProvider.provideTrails().then { List<TrailRegion> trails ->
 				addCacheHeaders(response.headers, trails)
-				cache.put(CACHE_KEY, trails)
+				cache.cacheV1Data(trails)
 				render json(trails)
 			}
 		}
