@@ -90,5 +90,6 @@ class TrailHandler extends GroovyHandler {
 	private static void addCacheHeaders(MutableHeaders headers, def trails) {
 		headers.add(CACHE_CONTROL, "max-age=${TimeUnit.MINUTES.toSeconds(5)}")
 		headers.add(ETAG, toHexString(trails.hashCode()))
+        headers.add(ACCESS_CONTROL_ALLOW_ORIGIN, '*')
 	}
 }
