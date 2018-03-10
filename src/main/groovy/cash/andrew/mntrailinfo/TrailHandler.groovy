@@ -17,79 +17,127 @@ import static ratpack.jackson.Jackson.json
 
 @Singleton
 class TrailHandler extends GroovyHandler {
-	private final TrailCache cache
-	private final TrailProvider trailProvider
 
-	@Inject
-	TrailHandler(TrailCache cache, TrailProvider trailProvider) {
-		this.cache = checkNotNull(cache, 'cache == null')
-		this.trailProvider = checkNotNull(trailProvider, 'trailProvider == null')
-	}
+  private static final String VERSION_HEADER = 'api-version'
 
-	@Override
-	void handle(GroovyContext context) {
-		def apiVersion = context.header('Api-Version').orElse('')
+  private final TrailCache cache
+  private final TrailProvider trailProvider
 
-		// fall through for v1
-		if (apiVersion.isInteger() && apiVersion.toInteger() >= 2) {
-			handleV2(context)
-			return
-		}
+  @Inject
+  TrailHandler(TrailCache cache, TrailProvider trailProvider) {
+    this.cache = checkNotNull(cache, 'cache == null')
+    this.trailProvider = checkNotNull(trailProvider, 'trailProvider == null')
+  }
 
-		handleV1(context)
-	}
+  @Override
+  void handle(GroovyContext context) {
+    def apiVersion = context.header(VERSION_HEADER).orElse('')
 
-	private void handleV2(GroovyContext context) {
-		context.with {
-			def cachedData = cache.v2Data
+    if (!apiVersion.isInteger() || apiVersion.toInteger() == 1) {
+      handleV1(context)
+      return
+    }
 
-			if (cachedData) {
-				def etag = request.headers.get(IF_NONE_MATCH)
-				if (toHexString(cachedData.hashCode()) == etag) {
-					response.status(304).send()
-					return
-				}
+    if (apiVersion.toInteger() == 3) {
+      // todo uncomment when api becomes available.
+      // handleV3(context)
+      context.with {
+        response.headers.add(CONTENT_TYPE, 'application/json')
+        response.status(501)
+        render json([error: 'Api version 3 is not available yet.'])
+      }
+      return
+    }
 
-				addCacheHeaders(response.headers, cachedData as List<TrailInfo>)
-				render json(cachedData)
-				return
-			}
+    if (apiVersion.toInteger() == 2) {
+      handleV2(context)
+      return
+    }
 
-			trailProvider.provideTrailsV2().then { List<TrailInfo> trails ->
-				addCacheHeaders(response.headers, trails)
-				cache.cacheV2Data(trails)
-				render json(trails)
-			}
-		}
-	}
+    context.with {
+      response.headers.add(CONTENT_TYPE, 'application/json')
+      response.status(400)
+      render json([error: 'Bad version header'])
+    }
+  }
 
-	private void handleV1(GroovyContext context) {
-		context.with {
-			def cachedData = cache.v1Data
+  private void handleV3(GroovyContext context) {
+    context.with {
+      def cacheData = cache.v3Data
 
-			if (cachedData) {
-				def etag = request.headers.get(IF_NONE_MATCH)
-				if (toHexString(cachedData.hashCode()) == etag) {
-					response.status(304).send()
-					return
-				}
+      if (cacheData) {
+        def etag = request.headers.get(IF_NONE_MATCH)
+        if (toHexString(cacheData.hashCode()) == etag) {
+          response.status(304).send()
+          return
+        }
+      }
 
-				addCacheHeaders(response.headers, cachedData as List<TrailRegion>)
-				render json(cachedData)
-				return
-			}
+      trailProvider.provideTrailsV3().map {
+        it.body.text
+      }.then { bodyText ->
+        response.with {
+          addHeaders(headers, bodyText)
+          cache.cacheV3Data(bodyText)
+          render bodyText
+        }
+      }
+    }
+  }
 
-			trailProvider.provideTrails().then { List<TrailRegion> trails ->
-				addCacheHeaders(response.headers, trails)
-				cache.cacheV1Data(trails)
-				render json(trails)
-			}
-		}
-	}
+  private void handleV2(GroovyContext context) {
+    context.with {
+      def cachedData = cache.v2Data
 
-	private static void addCacheHeaders(MutableHeaders headers, def trails) {
-		headers.add(CACHE_CONTROL, "max-age=${TimeUnit.MINUTES.toSeconds(5)}")
-		headers.add(ETAG, toHexString(trails.hashCode()))
-        headers.add(ACCESS_CONTROL_ALLOW_ORIGIN, '*')
-	}
+      if (cachedData) {
+        def etag = request.headers.get(IF_NONE_MATCH)
+        if (toHexString(cachedData.hashCode()) == etag) {
+          response.status(304).send()
+          return
+        }
+
+        addHeaders(response.headers, cachedData as List<TrailInfo>)
+        render json(cachedData)
+        return
+      }
+
+      trailProvider.provideTrailsV2().then { List<TrailInfo> trails ->
+        addHeaders(response.headers, trails)
+        cache.cacheV2Data(trails)
+        render json(trails)
+      }
+    }
+  }
+
+  private void handleV1(GroovyContext context) {
+    context.with {
+      def cachedData = cache.v1Data
+
+      if (cachedData) {
+        def etag = request.headers.get(IF_NONE_MATCH)
+        if (toHexString(cachedData.hashCode()) == etag) {
+          response.status(304).send()
+          return
+        }
+
+        addHeaders(response.headers, cachedData as List<TrailRegion>)
+        render json(cachedData)
+        return
+      }
+
+      trailProvider.provideTrails().then { List<TrailRegion> trails ->
+        addHeaders(response.headers, trails)
+        cache.cacheV1Data(trails)
+        render json(trails)
+      }
+    }
+  }
+
+  private static void addHeaders(MutableHeaders headers, def cachedData) {
+    headers.add(CONTENT_TYPE, 'application/json')
+    headers.add(CACHE_CONTROL, "max-age=${TimeUnit.MINUTES.toSeconds(5)}")
+    headers.add(ETAG, toHexString(cachedData.hashCode()))
+    headers.add(ACCESS_CONTROL_ALLOW_ORIGIN, '*')
+    headers.add(ACCESS_CONTROL_ALLOW_HEADERS, VERSION_HEADER)
+  }
 }

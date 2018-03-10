@@ -1,8 +1,8 @@
 plugins {
-  id 'io.ratpack.ratpack-groovy' version '1.5.0'
-  id 'com.github.johnrengelman.plugin-shadow' version '2.0.0'
-  id 'com.github.ben-manes.versions' version '0.15.0'
-  id "com.diffplug.gradle.spotless" version '3.6.0'
+  id 'io.ratpack.ratpack-groovy' version '1.5.4'
+  id 'com.github.johnrengelman.plugin-shadow' version '2.0.2'
+  id 'com.github.ben-manes.versions' version '0.17.0'
+  id "com.diffplug.gradle.spotless" version '3.10.0'
 }
 
 apply plugin: 'idea'

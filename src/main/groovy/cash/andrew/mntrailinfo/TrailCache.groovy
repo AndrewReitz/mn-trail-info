@@ -16,6 +16,7 @@ class TrailCache {
 
     private static final String CACHE_KEY = 'trailInfo'
     private static final String CACHE_KEY_V2 = 'trailInfoV2'
+    private static final String CACHE_KEY_V3 = 'trailInfoV3'
 
     private final Cache cache
 
@@ -37,5 +38,13 @@ class TrailCache {
 
     List<TrailInfo> getV2Data() {
         cache.getIfPresent(CACHE_KEY_V2)
+    }
+
+    void cacheV3Data(String trailJson) {
+        cache.put(CACHE_KEY_V3, trailJson)
+    }
+
+    String getV3Data() {
+        cache.getIfPresent(CACHE_KEY_V3)
     }
 }

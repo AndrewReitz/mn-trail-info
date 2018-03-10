@@ -4,9 +4,7 @@ import groovy.transform.CompileStatic
 import groovy.transform.Immutable
 import groovy.transform.ToString
 
-import java.time.LocalDateTime
-
-@Immutable(knownImmutableClasses = [LocalDateTime])
+@Immutable
 @ToString(includeNames = true)
 @CompileStatic
 class TrailInfo {

@@ -10,6 +10,8 @@ import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 import ratpack.exec.Promise
+import ratpack.http.client.HttpClient
+import ratpack.http.client.ReceivedResponse
 
 import static com.google.common.base.Preconditions.checkNotNull
 
@@ -17,12 +19,17 @@ import static com.google.common.base.Preconditions.checkNotNull
 @Singleton
 class TrailProvider {
 
+  // todo put in real url when it becomes available
+  private static final URI V3_API_ENDPOINT = URI.create('https://pa2jiiv7i1.execute-api.us-east-1.amazonaws.com/dev/trails')
+
   private final TrailWebsiteProvider websiteProvider
   private final TrailWebsiteDateParser parser
+  private final HttpClient httpClient
 
-  @Inject TrailProvider(TrailWebsiteProvider websiteProvider, TrailWebsiteDateParser parser) {
+  @Inject TrailProvider(TrailWebsiteProvider websiteProvider, TrailWebsiteDateParser parser, HttpClient httpClient) {
     this.websiteProvider = checkNotNull(websiteProvider, 'websiteProvider == null')
     this.parser = checkNotNull(parser, 'parser == null')
+    this.httpClient = checkNotNull(httpClient, 'httpClient == null')
   }
 
   Promise<List<TrailRegion>> provideTrails() {
@@ -98,5 +105,12 @@ class TrailProvider {
             return trailInfo
           }
     }.promise()
+  }
+
+  /**
+   * Proxy to the new trail service.
+   */
+  Promise<ReceivedResponse> provideTrailsV3() {
+    return httpClient.get(V3_API_ENDPOINT)
   }
 }

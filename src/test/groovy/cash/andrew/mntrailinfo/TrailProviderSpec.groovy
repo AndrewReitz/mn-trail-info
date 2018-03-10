@@ -4,12 +4,15 @@ import cash.andrew.mntrailinfo.model.TrailInfo
 import cash.andrew.mntrailinfo.model.TrailRegion
 import groovy.xml.MarkupBuilder
 import ratpack.exec.Promise
+import ratpack.http.client.HttpClient
+import ratpack.http.client.ReceivedResponse
+import ratpack.http.client.internal.DefaultReceivedResponse
+import ratpack.http.internal.ByteBufBackedTypedData
 import ratpack.test.exec.ExecHarness
 import spock.lang.AutoCleanup
 import spock.lang.Specification
 
 import java.lang.Void as Should
-
 import java.time.LocalDateTime
 import java.time.Month
 
@@ -17,11 +20,11 @@ class TrailProviderSpec extends Specification {
 
   @AutoCleanup ExecHarness execHarness = ExecHarness.harness()
 
-  Should "should parse website into a list of trail regions (v1)"() {
+  Should "parse website into a list of trail regions (v1)"() {
     given:
     TrailWebsiteProvider websiteProvider = Mock()
     def parser = new TrailWebsiteDateParser()
-    def trailProvider = new TrailProvider(websiteProvider, parser)
+    def trailProvider = new TrailProvider(websiteProvider, parser, Mock(HttpClient))
 
     def trailInfo = new TrailInfo(
         name: 'Mr. Meeseeks',
@@ -63,11 +66,11 @@ class TrailProviderSpec extends Specification {
     1 * websiteProvider.website >> Promise.value(writer.toString())
   }
 
-  Should "should parse website into a list of trails (for v2)"() {
+  Should "parse website into a list of trails (for v2)"() {
     given:
     TrailWebsiteProvider websiteProvider = Mock()
     def parser = new TrailWebsiteDateParser()
-    def trailProvider = new TrailProvider(websiteProvider, parser)
+    def trailProvider = new TrailProvider(websiteProvider, parser, Mock(HttpClient))
 
     def trailInfo = new TrailInfo(
         name: 'Mr. Meeseeks',
@@ -125,5 +128,24 @@ Details: Trail is mostly tacky with a few damp spots. Should be in great shape b
     trails == expected
     1 * websiteProvider.website >> Promise.value(mainPageWriter.toString())
     1 * websiteProvider.trailDetails(expectedThreadId) >> Promise.value(threadPageWriter.toString())
+  }
+
+  Should "proxy v3 request to trail api"() {
+    given:
+    def typedData = Mock(ByteBufBackedTypedData) {
+      getText() >> "HELLO WORLD"
+    }
+    def response = new DefaultReceivedResponse(null, null, typedData)
+
+    def httpClient = Mock(HttpClient)
+    def classUnderTest = new TrailProvider(Mock(TrailWebsiteProvider), new TrailWebsiteDateParser(), httpClient)
+
+    when:
+    ReceivedResponse result  = execHarness.yield { classUnderTest.provideTrailsV3() }.value
+
+
+    then:
+    result.body.text == "HELLO WORLD"
+    1 * httpClient.get(TrailProvider.V3_API_ENDPOINT) >> Promise.value(response)
   }
 }
